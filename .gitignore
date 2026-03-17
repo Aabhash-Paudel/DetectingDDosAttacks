@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Model (regenerate with: python backend/train_model.py)
+backend/model.pkl
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temp
+*.tmp
+*.log
+
+# Large PCAP captures (too large for GitHub, download separately)
+captures/DD/
+captures/BB/
+
+# Implementation notes (personal)
+implementtion.txt

@@ -1,57 +1,159 @@
-# Detection of DDoS Attacks using Machine Learning
+# DDoS Shield — Real-time DDoS Attack Detection
 
-## Problem Statement
+A full-stack web application for detecting Distributed Denial of Service (DDoS) attacks using Machine Learning. Upload Wireshark PCAP files, CIC-format CSV data, or manually enter network flow features to get instant threat analysis.
 
-Distributed Denial of Service or DDoS attack is one in which traffic from different sources flood a victim thereby interrupting service. The problem statement is that given a labelled dataset of the details of DDoS attacks, we need to implement a classification algorithm to find out if the attack is a DDoS attack or not.
+![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)
+![Flask](https://img.shields.io/badge/Flask-REST%20API-green?logo=flask)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-RandomForest-orange?logo=scikit-learn)
+
+---
+
+## Features
+
+- **3 Input Modes**: Manual feature entry, CSV upload, PCAP upload
+- **Hybrid Detection**: ML model (RandomForest) + Heuristic pattern analysis
+- **Real-time Dashboard**: Dark-themed UI with threat gauge, donut chart, stats
+- **PCAP Analysis**: Reconstructs TCP flows from Wireshark captures using Scapy
+- **CSV Analysis**: Supports CIC-format network flow CSVs (CSE-CIC-IDS2018)
+- **Threat Level**: Automatic HIGH/MEDIUM/LOW classification
+- **Security**: File size limits, extension validation, sanitized uploads
+- **Cross-platform**: Works on Windows, Linux, and macOS
+
+## Quick Start
+
+### Windows
+```
+Double-click run.bat
+```
+
+### Linux / macOS
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+### Manual Setup
+```bash
+python -m venv .venv
+# Linux/macOS:
+. .venv/bin/activate
+# Windows (PowerShell):
+#   .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python backend/train_model.py   # Train model (first time only)
+python backend/app.py           # Start server
+# Open http://localhost:5000
+```
+
+## Publish to GitHub
+
+### Option A: GitHub CLI (recommended)
+```bash
+# from the repo root
+git add .
+git commit -m "Initial commit"
+
+# login once
+gh auth login
+
+# create the repo on GitHub and push
+gh repo create DetectingDDosAttacks --public --source . --remote origin --push
+```
+
+### Option B: Create repo on GitHub website (manual remote)
+```bash
+git add .
+git commit -m "Initial commit"
+
+# create an empty repo on GitHub, then set the remote URL:
+git remote add origin https://github.com/<YOUR_USER>/<YOUR_REPO>.git
+git branch -M main
+git push -u origin main
+```
+
+## Clone & Run (Windows / Linux)
+```bash
+git clone https://github.com/<YOUR_USER>/<YOUR_REPO>.git
+cd <YOUR_REPO>
+```
+
+- **Windows**: double-click `run.bat`
+- **Linux/macOS**:
+
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+## Architecture
+
+```
+Frontend (HTML/CSS/JS)
+        ↓
+Flask API (app.py)  ← Security layer, model loaded once at startup
+        ↓
+Input Parsers
+   ├── csv_parser.py       (CIC-format CSV → DataFrame)
+   └── pcap_parser.py      (PCAP → TCP flow stats → DataFrame)
+        ↓
+preprocessor.py             (normalize columns, IP encoding, feature order)
+        ↓
+model.pkl (Random Forest)   +   Heuristic Detector (for packet-level attacks)
+        ↓
+Response: prediction + confidence + stats + threat_level
+```
+
+## Model Performance
+
+| Metric | Score |
+|---|---|
+| **Accuracy** | 99.99% |
+| **ROC-AUC** | 0.9999 |
+| **Precision** | 1.00 |
+| **Recall** | 1.00 |
+| **F1-Score** | 1.00 |
+
+Trained on the **CSE-CIC-IDS2018** dataset (500K flows, 80% benign / 20% DDoS).
+Class imbalance handled with `RandomUnderSampler` → 100K balanced samples.
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check + model status |
+| `/predict` | POST | Manual feature input → single prediction |
+| `/upload-csv` | POST | CIC-format CSV → bulk predictions |
+| `/upload-pcap` | POST | Wireshark .pcap/.pcapng → bulk predictions |
+| `/stats` | GET | Session statistics + threat level |
+| `/stats/reset` | POST | Reset session counters |
 
 ## Dataset
 
-The dataset is a subsampled version of the CSE-CIC-IDS2018, CICIDS2017, and CIC DoS datasets (2017). It consists of 80% benign and 20% DDoS traffic, in order to represent a more realistic ratio of normal-to-DDoS traffic.
+The dataset is a subsampled version of the **CSE-CIC-IDS2018**, **CICIDS2017**, and **CIC DoS** datasets (2017). It consists of 80% benign and 20% DDoS traffic, representing a realistic ratio of normal-to-DDoS traffic.
 
-## Data Preprocessing
+### Features Used (13 total)
+- `Fwd Pkt Len Mean` — Mean forward packet length
+- `Fwd Seg Size Avg` — Average forward segment size
+- `Init Fwd Win Byts` — Initial forward window bytes
+- `Init Bwd Win Byts` — Initial backward window bytes
+- `Fwd Seg Size Min` — Minimum forward segment size
+- `SourceIP_1..4` — Source IP octets
+- `DestinationIP_1..4` — Destination IP octets
 
-- Source IP and Destination IP were extracted from Flow ID.
-- Data was sorted by Timestamp.
-- Any unneccessary columns were dropped.
-- Check for missing values was performed.
-- Check for class imbalance.
+## Tech Stack
 
-  ![image](https://user-images.githubusercontent.com/41315903/173917041-920d3a10-3043-42cb-9a42-ab0ea91075c1.png)
-  
-  We can see that there is class imbalance present and this needs to be handled.
+- **Backend**: Python, Flask, scikit-learn, Scapy, pandas, joblib
+- **Frontend**: HTML5, CSS3 (glassmorphism dark theme), JavaScript, Chart.js
+- **ML**: RandomForestClassifier + heuristic pattern detection
 
-## Feature Engineering
+## PCAP Test Results
 
-- ML Models cannot handle IP addresses. IP addresses were handled as follows:
-  Eg: 192.168.4.4 was divided into four columns separated at "."
-- Label Encoding the target variable. 1 stands for DDoS attack and 0 for benign.
+| Capture | Flows | DDoS Detected | Method |
+|---|---|---|---|
+| TCP Reflection SYN-ACK | 7,674 | 100% | Heuristic |
+| TCP SYN Flood (spoofed) | 37,669 | 100% | Heuristic |
+| CIC-format CSV | 10 | 100% | ML |
 
-## Handling Class Imbalance And Splitting the Data
+## License
 
-Since we have over 100K samples in the minority class, we can use random undersampling as our approach to handle class imbalance. `RandomUnderSampler` from the `imblearn.under_sampling` library. After this, we split the data: 70% training set and 30% test data.
-
-## Machine Learning
-
-4 ML Models were used and their ROC AUC Scores were noted.
-- Logistic Regression: 0.9904716509939988
-- Random Forest: 0.9999999856560075
-- KNN: 0.9998091214573287
-- AdaBoost: 0.9999991923228831
-
-Furthermore, their accuracies were noted too:
-- 'Logistic Regression': 0.9592333333333334
-- 'Random Forest': 0.9999666666666667
-- 'KNN': 0.9987833333333334
-- 'AdaBoost': 0.9997
-
-The better option among these classifiers is Random Forest eventhough all of them perform well.
-
-Below is the Confusion Matrix for the Random Forest Classifier:
-
-![image](https://user-images.githubusercontent.com/41315903/173928475-b9c66f36-fdcc-441d-bd26-e70a09e6bb37.png)
-
-Below is the Precision-Recall Curve:
- 
-![image](https://user-images.githubusercontent.com/41315903/173929356-fad31417-8486-4827-a5dc-7f06f8b5a3b8.png)
-
-
+This project is for educational purposes.

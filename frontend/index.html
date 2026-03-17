@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DDoS Shield — Real-time Attack Detection</title>
+  <meta name="description" content="AI-powered DDoS attack detection using Random Forest ML. Upload Wireshark PCAP files or CSV network flow data for instant threat analysis." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="17" stroke="url(#g1)" stroke-width="2"/>
+            <path d="M10 18l5 5 11-11" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 8v2M18 26v2M8 18h2M26 18h2" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00ff88"/>
+                <stop offset="1" stop-color="#0066ff"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">DDoS<span class="accent"> Shield</span></h1>
+          <p class="brand-sub">Real-time Attack Detection · ML Powered</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="model-badge">
+          <span class="model-dot"></span>
+          Random Forest · ROC-AUC 0.9999
+        </div>
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Connecting…</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+
+    <!-- Stats Row -->
+    <section class="stats-row" id="statsRow">
+      <div class="stat-card" id="statTotal">
+        <p class="stat-label">Total Analyzed</p>
+        <p class="stat-value" id="statTotalVal">0</p>
+      </div>
+      <div class="stat-card ddos-card" id="statDdos">
+        <p class="stat-label">DDoS Flows</p>
+        <p class="stat-value" id="statDdosVal">0</p>
+      </div>
+      <div class="stat-card benign-card" id="statBenign">
+        <p class="stat-label">Benign Flows</p>
+        <p class="stat-value" id="statBenignVal">0</p>
+      </div>
+      <div class="stat-card" id="statConf">
+        <p class="stat-label">Avg Confidence</p>
+        <p class="stat-value" id="statConfVal">—</p>
+      </div>
+      <div class="stat-card threat-card" id="statThreat">
+        <p class="stat-label">Threat Level</p>
+        <p class="stat-value threat-pill low" id="statThreatVal">LOW</p>
+      </div>
+    </section>
+
+    <!-- Two-column layout -->
+    <div class="content-grid">
+
+      <!-- Left: Input Panel -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Analyze Traffic</h2>
+          <button class="reset-btn" id="resetBtn" title="Reset session stats">↺ Reset</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" role="tablist">
+          <button class="tab active" role="tab" data-tab="manual" id="tabManual">Manual Input</button>
+          <button class="tab" role="tab" data-tab="csv"    id="tabCsv">CSV Upload</button>
+          <button class="tab" role="tab" data-tab="pcap"   id="tabPcap">PCAP Upload</button>
+        </div>
+
+        <!-- ── Manual Tab ── -->
+        <div class="tab-content active" id="tabContentManual">
+          <form id="manualForm" autocomplete="off">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="sourceIp">Source IP</label>
+                <input type="text" id="sourceIp" name="source_ip" value="172.31.69.28" placeholder="e.g. 192.168.1.1" />
+              </div>
+              <div class="form-group">
+                <label for="destIp">Destination IP</label>
+                <input type="text" id="destIp" name="dest_ip" value="18.216.200.189" placeholder="e.g. 10.0.0.1" />
+              </div>
+              <div class="form-group">
+                <label for="fwdPktLenMean">Fwd Pkt Len Mean <span class="hint">bytes</span></label>
+                <input type="number" id="fwdPktLenMean" name="Fwd Pkt Len Mean" value="233.75" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label for="fwdSegSizeAvg">Fwd Seg Size Avg <span class="hint">bytes</span></label>
+                <input type="number" id="fwdSegSizeAvg" name="Fwd Seg Size Avg" value="233.75" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label for="initFwdWin">Init Fwd Win Bytes</label>
+                <input type="number" id="initFwdWin" name="Init Fwd Win Byts" value="-1" step="1" />
+              </div>
+              <div class="form-group">
+                <label for="initBwdWin">Init Bwd Win Bytes</label>
+                <input type="number" id="initBwdWin" name="Init Bwd Win Byts" value="32768" step="1" />
+              </div>
+              <div class="form-group full-width">
+                <label for="fwdSegSizeMin">Fwd Seg Size Min <span class="hint">bytes</span></label>
+                <input type="number" id="fwdSegSizeMin" name="Fwd Seg Size Min" value="0" step="1" />
+              </div>
+            </div>
+            <button type="submit" class="btn-primary" id="manualSubmitBtn">
+              <span class="btn-icon">⚡</span> Analyze Flow
+            </button>
+          </form>
+
+          <!-- Single Prediction Result -->
+          <div class="single-result hidden" id="singleResult">
+            <div class="result-badge-wrap">
+              <div class="result-badge" id="resultBadge">—</div>
+              <div class="result-meta">
+                <p class="result-label">Confidence</p>
+                <p class="result-conf" id="resultConf">—</p>
+              </div>
+              <div class="result-meta">
+                <p class="result-label">DDoS Probability</p>
+                <p class="result-conf" id="resultDdosProb">—</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CSV Tab ── -->
+        <div class="tab-content" id="tabContentCsv">
+          <div class="info-box">
+            <strong>📋 CIC-format CSV</strong> — same schema as the CSE-CIC-IDS2018 dataset.<br/>
+            Required columns: <code>Flow ID</code>, <code>Fwd Pkt Len Mean</code>, <code>Fwd Seg Size Avg</code>,
+            <code>Init Fwd Win Byts</code>, <code>Init Bwd Win Byts</code>, <code>Fwd Seg Size Min</code>.
+          </div>
+          <div class="dropzone" id="csvDropzone" data-type="csv">
+            <div class="dz-icon">📂</div>
+            <p class="dz-text">Drag &amp; drop your <strong>.csv</strong> file here</p>
+            <p class="dz-sub">or</p>
+            <label class="dz-btn" for="csvFileInput">Browse File</label>
+            <input type="file" id="csvFileInput" accept=".csv" hidden />
+            <p class="dz-limit">Max 10 MB</p>
+          </div>
+          <div class="upload-status hidden" id="csvStatus"></div>
+        </div>
+
+        <!-- ── PCAP Tab ── -->
+        <div class="tab-content" id="tabContentPcap">
+          <div class="info-box">
+            <strong>🦈 Wireshark PCAP</strong> — upload a <code>.pcap</code> or <code>.pcapng</code> capture file.<br/>
+            The engine reconstructs TCP flows and computes CIC-compatible features automatically.
+          </div>
+          <div class="dropzone" id="pcapDropzone" data-type="pcap">
+            <div class="dz-icon">🔬</div>
+            <p class="dz-text">Drag &amp; drop your <strong>.pcap</strong> / <strong>.pcapng</strong> file here</p>
+            <p class="dz-sub">or</p>
+            <label class="dz-btn" for="pcapFileInput">Browse File</label>
+            <input type="file" id="pcapFileInput" accept=".pcap,.pcapng" hidden />
+            <p class="dz-limit">Max 10 MB</p>
+          </div>
+          <div class="upload-status hidden" id="pcapStatus"></div>
+        </div>
+      </section>
+
+      <!-- Right: Chart + Results -->
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Results</h2>
+          <span class="results-count" id="resultsCount">0 flows</span>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="chart-wrap">
+          <canvas id="donutChart" width="180" height="180"></canvas>
+          <div class="chart-center" id="chartCenter">
+            <span class="chart-pct" id="chartDdosPct">0%</span>
+            <span class="chart-lbl">DDoS</span>
+          </div>
+        </div>
+
+        <!-- Threat Gauge Bar -->
+        <div class="gauge-wrap">
+          <div class="gauge-bar">
+            <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>LOW</span><span>MEDIUM</span><span>HIGH</span>
+          </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="table-wrap" id="tableWrap">
+          <table class="results-table" id="resultsTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Source IP</th>
+                <th>Dest IP</th>
+                <th>Prediction</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr class="empty-row">
+                <td colspan="5">No results yet — analyze some traffic above</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <p>DetectingDDoS · Dataset: CSE-CIC-IDS2018 · Model: Random Forest (Accuracy 99.97%, ROC-AUC 0.9999) · 80/20 benign/DDoS ratio handled with RandomUnderSampler</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

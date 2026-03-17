@@ -1,0 +1,15 @@
+[
+  "Fwd Pkt Len Mean",
+  "Fwd Seg Size Avg",
+  "Init Fwd Win Byts",
+  "Init Bwd Win Byts",
+  "Fwd Seg Size Min",
+  "SourceIP_1",
+  "SourceIP_2",
+  "SourceIP_3",
+  "SourceIP_4",
+  "DestinationIP_1",
+  "DestinationIP_2",
+  "DestinationIP_3",
+  "DestinationIP_4"
+]

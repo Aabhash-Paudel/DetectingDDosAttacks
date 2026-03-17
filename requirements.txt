@@ -1,0 +1,9 @@
+flask
+flask-cors
+scikit-learn
+pandas
+numpy
+joblib
+imbalanced-learn
+scapy
+werkzeug
