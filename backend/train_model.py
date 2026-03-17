@@ -20,23 +20,23 @@ MODEL_PATH   = os.path.join(os.path.dirname(__file__), "model.pkl")
 FEATURES_PATH = os.path.join(os.path.dirname(__file__), "features.json")
 
 def train():
-    print("[1/8] Loading dataset …")
+    print("[1/8] Loading dataset...")
     # Read Timestamp as plain string to avoid slow dateutil parsing
     df = pd.read_csv(DATASET_PATH, index_col=None, low_memory=False)
     print(f"      Shape: {df.shape}")
 
-    print("[2/8] Extracting Source / Destination from Flow ID …")
+    print("[2/8] Extracting Source / Destination from Flow ID...")
     df[['Source', 'Destination', 'Source Port', 'Dest Port', 'Other']] = (
         df['Flow ID'].str.split('-', expand=True)
     )
 
-    print("[3/8] Sorting by Timestamp …")
+    print("[3/8] Sorting by Timestamp...")
     df = df.sort_values("Timestamp")
 
-    print("[4/8] Dropping unnecessary columns (Timestamp, ports, Other) …")
+    print("[4/8] Dropping unnecessary columns (Timestamp, ports, Other)...")
     df = df.drop(columns=["Timestamp", "Source Port", "Dest Port", "Other"])
 
-    print("[5/8] Splitting IP addresses into octets …")
+    print("[5/8] Splitting IP addresses into octets...")
     df[['SourceIP_1', 'SourceIP_2', 'SourceIP_3', 'SourceIP_4']] = (
         df['Source'].str.split('.', expand=True)
     )
@@ -45,18 +45,18 @@ def train():
     )
     df = df.drop(columns=["Source", "Destination", "Flow ID"])
 
-    print("[6/8] Checking missing values …")
+    print("[6/8] Checking missing values...")
     missing = df.isna().sum()
     if missing.any():
         print(f"      Missing: {missing[missing > 0].to_dict()}")
     df = df.fillna(0)
 
-    print("[6.5/8] Label encoding (1=DDoS, 0=Benign) …")
+    print("[6.5/8] Label encoding (1=DDoS, 0=Benign)...")
     le = LabelEncoder()
     df['Label'] = le.fit_transform(df['Label'])
     print(f"      Classes: {dict(zip(le.classes_, le.transform(le.classes_)))}")
 
-    print("[7/8] RandomUnderSampler to handle class imbalance …")
+    print("[7/8] RandomUnderSampler to handle class imbalance...")
     #  Dataset is 80% benign / 20% DDoS → undersample benign
     X = df.drop('Label', axis=1)
     y = df['Label']
@@ -68,9 +68,9 @@ def train():
     feature_cols = list(X_rus.columns)
     with open(FEATURES_PATH, 'w') as f:
         json.dump(feature_cols, f, indent=2)
-    print(f"      Feature list saved → features.json ({len(feature_cols)} features)")
+    print(f"      Feature list saved -> features.json ({len(feature_cols)} features)")
 
-    print("[8/8] Train/test split 70/30 → fit RandomForest …")
+    print("[8/8] Train/test split 70/30 -> fit RandomForest...")
     X_train, X_test, y_train, y_test = train_test_split(
         X_rus, y_rus, test_size=0.3, random_state=42
     )
@@ -86,13 +86,13 @@ def train():
     y_proba = clf.predict_proba(X_test)[:, 1]
     acc     = accuracy_score(y_test, y_pred)
     roc     = roc_auc_score(y_test, y_proba)
-    print(f"\n✅ Accuracy  : {acc:.6f}")
-    print(f"✅ ROC-AUC   : {roc:.10f}")
+    print(f"\n[OK] Accuracy  : {acc:.6f}")
+    print(f"[OK] ROC-AUC   : {roc:.10f}")
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred, target_names=["Benign", "DDoS"]))
 
     joblib.dump(clf, MODEL_PATH)
-    print(f"\n💾 Model saved → {MODEL_PATH}")
+    print(f"\n[SAVED] Model saved -> {MODEL_PATH}")
 
 if __name__ == "__main__":
     train()
