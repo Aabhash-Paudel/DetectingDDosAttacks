@@ -35,9 +35,5 @@ desktop.ini
 *.tmp
 *.log
 
-# Large PCAP captures (too large for GitHub, download separately)
-captures/DD/
-captures/BB/
-
 # Implementation notes (personal)
 implementtion.txt
