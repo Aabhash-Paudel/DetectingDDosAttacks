@@ -42,11 +42,11 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES
 
 # ─── Load Model Once at Startup ───────────────────────────────────────────────
 if not os.path.exists(MODEL_PATH):
-    print("⚠  model.pkl not found. Run backend/train_model.py first.")
+    print("[WARNING] model.pkl not found. Run backend/train_model.py first.")
     model = None
 else:
     model = joblib.load(MODEL_PATH)
-    print("✅ Model loaded.")
+    print("[OK] Model loaded.")
 
 with open(FEATURES_PATH) as f:
     FEATURE_COLS = json.load(f)
